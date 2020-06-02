@@ -1,0 +1,14 @@
+# IDE stuff
+.buildpath
+.project
+.settings/
+
+# Deployment stuff
+composer.lock
+/vendor/*
+/bin/*
+
+# PHPUnit stuff
+.phpunit.result.cache
+coverage.xml
+/coverage/*
