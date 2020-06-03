@@ -35,4 +35,38 @@ folders were useful.
 
 ## Installation
 
+## Configuration
+A [Google Service account](https://cloud.google.com/docs/authentication/production)
+is required to grand server to server access to the adapter.
+
+### Laravel Service Provider
+It will provide the authentication creditials as JSON file. The file should be
+downloaded for later use.
+
+To configure the storage adapter one can either provide the file path: 
+`GOOGLE_SERVICE_CONF_FILE="service-account.json"`
+or provide its content base base 64 encoded json string:
+`GOOGLE_SERVICE_CONF="[LONG-BASE64-STRING-HERE]"`
+
+To create a storage device in a Laravel project, the following code can be added
+to `config/filesystems.php`:
+
+```php
+'gdrive' => [
+  'driver' => 'gdrive',
+  'serviceConf' => env('GOOGLE_SERVICE_CONF', ''),
+  'serviceConfFile' => env('GOOGLE_SERVICE_CONF_FILE', ''),
+],
+```
+
+This way 
+`Storage::disk('gdrive')`
+allows to access a gdrive disk.
+
+For example:
+
+`Storage::disk('gdrive')->getMetadata('dir/file.txt');`
+
+lists meta data of a file `dir/file.txt`.
+
 ## Usage
