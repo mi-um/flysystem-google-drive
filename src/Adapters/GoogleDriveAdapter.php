@@ -311,8 +311,8 @@ class GoogleDriveAdapter extends AbstractAdapter
             // Shared drives do not have a modifiedTime...
             // if (array_key_exists('createdTime', $meta))
             // return [
-                // 'timestamp' => strtotime($meta['createdTime'])
-                // ];
+            // 'timestamp' => strtotime($meta['createdTime'])
+            // ];
             
             return [];
     }
@@ -1308,6 +1308,22 @@ class GoogleDriveAdapter extends AbstractAdapter
         }
         
         return Arr::dot($result);
+    }
+    
+    /**
+     * Get the attributes that shall be return in listContents.
+     *
+     * @param object $driveFile
+     * @return string[]
+     */
+    protected function standardFileAttributes(object $driveFile)
+    {
+        return [
+            'path' => $driveFile->absname,
+            'id' => $driveFile->id,
+            'kind' => $driveFile->kind,
+            'createdTime' => $driveFile->createdTime,
+        ];
     }
     
     /*
