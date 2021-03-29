@@ -1,23 +1,22 @@
 <?php
 namespace mium\GoogleDrive\Adapters;
 
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\StreamWrapper;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use League\Flysystem\Config;
+use League\Flysystem\FileNotFoundException;
+use League\Flysystem\Util;
+use League\Flysystem\Adapter\AbstractAdapter;
+use League\Flysystem\Adapter\Polyfill\NotSupportingVisibilityTrait;
+use Psr\Http\Message\RequestInterface;
 use Google_Service_Drive;
 use Google_Service_Drive_Drive;
 use Google_Service_Drive_DriveFile;
 use Google_Service_Drive_FileList;
-use Google_Http_MediaFileUpload;
-use League\Flysystem\Adapter\AbstractAdapter;
-use League\Flysystem\Config;
-use League\Flysystem\Util;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Arr;
-use League\Flysystem\FileNotFoundException;
-use GuzzleHttp\Psr7\StreamWrapper;
 use GuzzleHttp;
-use Psr\Http\Message\RequestInterface;
-use League\Flysystem\Adapter\Polyfill\NotSupportingVisibilityTrait;
-use GuzzleHttp\Psr7\Request;
 
 /**
  * The Google Drive Adapter to use with the FlySystem storage.
@@ -96,7 +95,7 @@ class GoogleDriveAdapter extends AbstractAdapter
      * @var array
      */
     protected $gdFileParams = [
-        'enforceSingleParent' => true,
+        //'enforceSingleParent' => true,
         'supportsAllDrives' => true,
         'fields' => '*'
     ];
@@ -500,7 +499,7 @@ class GoogleDriveAdapter extends AbstractAdapter
             
             // Create a new fileObj (DriveFile) and set the new values
             $meta = [
-                'enforceSingleParent' => true,
+                //'enforceSingleParent' => true,
                 'supportsAllDrives' => true,
                 'fields' => '*'
             ];
@@ -574,7 +573,7 @@ class GoogleDriveAdapter extends AbstractAdapter
         // Call the GDrive API to run its magic
         $response = $this->getService()->files->copy($srcObj->getId(), $desObj,
             [
-                'enforceSingleParent' => true,
+                //'enforceSingleParent' => true,
                 'fields' => '*',
                 'supportsAllDrives' => true
             ]);
