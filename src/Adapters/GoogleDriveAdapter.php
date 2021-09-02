@@ -1,6 +1,11 @@
 <?php
 namespace mium\GoogleDrive\Adapters;
 
+use Google\Service\Drive as Google_Service_Drive;
+use Google\Service\Drive\Drive;
+use Google\Service\Drive\DriveFile;
+use Google\Service\Drive\FileList;
+use Google\Service\Drive\Resource\Drives;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\StreamWrapper;
 use Illuminate\Support\Arr;
@@ -12,10 +17,6 @@ use League\Flysystem\Util;
 use League\Flysystem\Adapter\AbstractAdapter;
 use League\Flysystem\Adapter\Polyfill\NotSupportingVisibilityTrait;
 use Psr\Http\Message\RequestInterface;
-use Google_Service_Drive;
-use Google_Service_Drive_Drive;
-use Google_Service_Drive_DriveFile;
-use Google_Service_Drive_FileList;
 use GuzzleHttp;
 
 /**
@@ -360,7 +361,7 @@ class GoogleDriveAdapter extends AbstractAdapter
             
             // League\Flysystem\Filesystem::write() already verified that the file
             // does not exist yet. So create a new one here.
-            $fileObj = new \Google_Service_Drive_DriveFile();
+            $fileObj = new DriveFile();
             $fileObj->setName($pathinfo['basename']);
             $fileObj->setParents([
                 $parent->getId()
@@ -370,7 +371,7 @@ class GoogleDriveAdapter extends AbstractAdapter
             $result = $this->gdCreateFile($fileObj);
             
             // Let the parent know about the new born child
-            if ($result instanceof \Google_Service_Drive_DriveFile) {
+            if ($result instanceof DriveFile) {
                 $this->addChildrenToParentCache($parent, [
                     $result
                 ]);
@@ -407,7 +408,7 @@ class GoogleDriveAdapter extends AbstractAdapter
             
             // Update the content to the file
             
-            if ($result instanceof \Google_Service_Drive_DriveFile) {
+            if ($result instanceof DriveFile) {
                 $this->addChildrenToParentCache($parent, [
                     $result
                 ]);
@@ -446,7 +447,7 @@ class GoogleDriveAdapter extends AbstractAdapter
         $fileObj = $this->getFileObjByName($path);
         
         // Create a new file object that is used for the update request
-        $newFileObj = new \Google_Service_Drive_DriveFile();
+        $newFileObj = new DriveFile();
         $newFileObj->setName($fileObj->getName());
         
         // The information of the resource handler (eg the size of the content)
@@ -463,7 +464,7 @@ class GoogleDriveAdapter extends AbstractAdapter
         }
         
         // Update the new file in the cache
-        if ($result instanceof \Google_Service_Drive_DriveFile) {
+        if ($result instanceof DriveFile) {
             $parentObj = $this->getFileObjByIdCache(current($fileObj->getParents()));
             $this->addChildrenToParentCache($parentObj, [
                 $this->gdGetFileById($result->getId())
@@ -503,7 +504,7 @@ class GoogleDriveAdapter extends AbstractAdapter
                 'supportsAllDrives' => true,
                 'fields' => '*'
             ];
-            $newFileObj = new \Google_Service_Drive_DriveFile();
+            $newFileObj = new DriveFile();
             $newFileObj->setName($newPathinfo['basename']);
             
             // Does the parent have to get changed?
@@ -516,7 +517,7 @@ class GoogleDriveAdapter extends AbstractAdapter
             $updatedFile = $this->getService()->files->update($oldFileObj->getId(), $newFileObj, $meta);
             
             // Update the caches
-            if ($updatedFile instanceof \Google_Service_Drive_DriveFile) {
+            if ($updatedFile instanceof DriveFile) {
                 
                 // Also remove the child from the parent's cache
                 foreach ($oldFileObj->getParents() as $parent) {
@@ -555,7 +556,7 @@ class GoogleDriveAdapter extends AbstractAdapter
         $desParObj = $this->getFileObjByName($pathinfo['dirname']);
         
         // Create a new file object
-        $desObj = new \Google_Service_Drive_DriveFile();
+        $desObj = new DriveFile();
         // ... and change the parent
         $desObj->setParents([
             $desParObj->getId()
@@ -579,7 +580,7 @@ class GoogleDriveAdapter extends AbstractAdapter
             ]);
         
         // If the response is right update our local cache and return true
-        if ($response instanceof \Google_Service_Drive_DriveFile) {
+        if ($response instanceof DriveFile) {
             $this->addChildrenToParentCache($desParObj, [
                 $response
             ]);
@@ -615,12 +616,12 @@ class GoogleDriveAdapter extends AbstractAdapter
         }
         
         // Create DriveFile with the trashed flag on
-        $newObj = new \Google_Service_Drive_DriveFile();
+        $newObj = new DriveFile();
         $newObj->setTrashed(true);
         
         $result = $this->gdUpdateFile($fileObj->getId(), $newObj);
         
-        if ($result instanceof \Google_Service_Drive_DriveFile) {
+        if ($result instanceof DriveFile) {
             $this->cacheFiles($fileObj->getId(), '', true);
             $this->cacheNames($path, '', true);
             
@@ -688,7 +689,7 @@ class GoogleDriveAdapter extends AbstractAdapter
             // Create a new directory for each remaining
             while (current($dirs) !== false) {
                 // The file object
-                $newFile = new \Google_Service_Drive_DriveFile();
+                $newFile = new DriveFile();
                 $newFile->setParents([
                     $parObj->getId()
                 ]);
@@ -729,9 +730,9 @@ class GoogleDriveAdapter extends AbstractAdapter
      * Cache the given driveFile and / or return what's stored for that file ID.
      *
      * @param string $id
-     * @param \Google_Service_Drive_Drive|\Google_Service_Drive_DriveFile $driveObject
+     * @param Drive|DriveFile $driveObject
      * @param bool $forget
-     * @return \Google_Service_Drive_Drive|\Google_Service_Drive_DriveFile|null
+     * @return Drive|DriveFile|null
      */
     protected function cacheFiles(string $id, $driveObject = null, bool $forget = false)
     {
@@ -804,7 +805,7 @@ class GoogleDriveAdapter extends AbstractAdapter
      * Cache the given ID under its given file name
      *
      * @param string $path
-     * @param \Google_Service_Drive_Drive $id
+     * @param Drive $id
      * @param bool $forget
      * @return string
      */
@@ -933,7 +934,7 @@ class GoogleDriveAdapter extends AbstractAdapter
      * That can either be a
      * Shared Drive or a file with the according mime-type. False otherwise.
      *
-     * @param \Google_Service_Drive_Drive|\Google_Service_Drive_DriveFile $driveFile
+     * @param Drive|DriveFile $driveFile
      * @return bool
      */
     protected function isDir(object $driveFile): bool
@@ -942,9 +943,9 @@ class GoogleDriveAdapter extends AbstractAdapter
         $isDir = false;
         
         // Treat Shared Drives as directories
-        if ($driveFile instanceof \Google_Service_Drive_Drive)
+        if ($driveFile instanceof Drive)
             $isDir = true;
-            elseif ($driveFile instanceof \Google_Service_Drive_DriveFile)
+            elseif ($driveFile instanceof DriveFile)
             if ($driveFile->getMimeType() == self::GDRIVE_MIMETYPE_DIR)
                 $isDir = true;
                 
@@ -1004,7 +1005,7 @@ class GoogleDriveAdapter extends AbstractAdapter
     /**
      * Call the Google Drive API and return available (shared) Drives
      *
-     * @return \Google_Service_Drive_Drive[]
+     * @return Drive[]
      */
     protected function gdGetDrives(): array
     {
@@ -1016,7 +1017,7 @@ class GoogleDriveAdapter extends AbstractAdapter
         // Get the Drive Service instance and ask for all available drives
         $gDrives = $this->getService()->drives;
         
-        if ($gDrives instanceof \Google_Service_Drive_Resource_Drives) {
+        if ($gDrives instanceof Drives) {
             foreach ($gDrives->listDrives([
                 'fields' => '*'
             ]) as $drive) {
@@ -1036,7 +1037,7 @@ class GoogleDriveAdapter extends AbstractAdapter
      * Get the meta data for the given file (or directory) ID
      *
      * @param string $id
-     * @return Google_Service_Drive_DriveFile
+     * @return DriveFile
      */
     protected function gdGetFileById(string $id)
     {
@@ -1061,7 +1062,7 @@ class GoogleDriveAdapter extends AbstractAdapter
      * Default corpora is 'drive'.
      *
      * @param array $query
-     * @return Google_Service_Drive_FileList
+     * @return FileList
      */
     protected function gdListFiles(array $query = [])
     {
@@ -1092,9 +1093,9 @@ class GoogleDriveAdapter extends AbstractAdapter
      * @param string $name
      * @param string $parentId
      *
-     * @return Google_Service_Drive_DriveFile|false
+     * @return DriveFile|false
      */
-    protected function gdCreateFile(\Google_Service_Drive_DriveFile $fileObj): \Google_Service_Drive_DriveFile
+    protected function gdCreateFile(DriveFile $fileObj): DriveFile
     {
         Log::info('gDrive creating file', [
             'parents' => $fileObj->getParents(),
@@ -1123,15 +1124,15 @@ class GoogleDriveAdapter extends AbstractAdapter
     
     /**
      *
-     * @param \Google_Service_Drive_DriveFile $fileObj
+     * @param DriveFile $fileObj
      * @return\GuzzleHttp\Psr7\Stream
      */
     /**
      *
-     * @param \Google_Service_Drive_DriveFile $fileObj
+     * @param DriveFile $fileObj
      * @return boolean|\GuzzleHttp\Psr7\Stream
      */
-    protected function gdGetStream(\Google_Service_Drive_DriveFile $fileObj)
+    protected function gdGetStream(DriveFile $fileObj)
     {
         Log::info('gDrive getting stream for file', [
             'id' => $fileObj->id
@@ -1156,10 +1157,10 @@ class GoogleDriveAdapter extends AbstractAdapter
      * file object.
      *
      * @param string $id
-     * @param \Google_Service_Drive_DriveFile $new
-     * @return \Google_Service_Drive_DriveFile
+     * @param DriveFile $new
+     * @return DriveFile
      */
-    protected function gdUpdateFile(string $id, \Google_Service_Drive_DriveFile $new): \Google_Service_Drive_DriveFile
+    protected function gdUpdateFile(string $id, DriveFile $new): DriveFile
     {
         Log::info('gDrive updating file', [
             'id' => $id
@@ -1190,10 +1191,10 @@ class GoogleDriveAdapter extends AbstractAdapter
      * Get a request object that can be used to update the given file
      *
      * @param string $id
-     * @param \Google_Service_Drive_DriveFile $new
+     * @param DriveFile $new
      * @return Request
      */
-    protected function gdUpdateFileRequest(string $id, \Google_Service_Drive_DriveFile $new): Request
+    protected function gdUpdateFileRequest(string $id, DriveFile $new): Request
     {
         // Keep the defer status to set it back afterwards
         $oldDefer = $this->getService()
@@ -1362,7 +1363,7 @@ class GoogleDriveAdapter extends AbstractAdapter
      * Get the meta data for the given file or directory ID
      *
      * @param string $id
-     * @return Google_Service_Drive_DriveFile|Google_Service_Drive_Drive
+     * @return DriveFile|Drive
      */
     protected function getFileObjByIdCache(string $id): object
     {
@@ -1372,7 +1373,7 @@ class GoogleDriveAdapter extends AbstractAdapter
             
             // If root is requested, let's use a fake one for now
             if ($id == self::DIRECTORY_ID_ROOT) {
-                $file = new \Google_Service_Drive_DriveFile();
+                $file = new DriveFile();
                 $file->id = self::DIRECTORY_ID_ROOT;
                 $file->name = '';
                 $file->absname = '';
@@ -1448,7 +1449,7 @@ class GoogleDriveAdapter extends AbstractAdapter
      * For directories that is the listing of the directory (files and folders).
      *
      * @param string $id
-     * @return \Google_Service_Drive_Drive[]|\Google_Service_Drive_DriveFile[]
+     * @return Drive[]|DriveFile[]
      */
     protected function getChildrenFromIdCache(string $id): array
     {
@@ -1484,7 +1485,7 @@ class GoogleDriveAdapter extends AbstractAdapter
      * Call the query and return the DriveFile objects as array; if found.
      *
      * @param string $driveFile
-     * @return \Google_Service_Drive_DriveFile|\Google_Service_Drive_Drive
+     * @return DriveFile|Drive
      */
     protected function getChildrenFromId(object $driveFile): array
     {
@@ -1504,9 +1505,9 @@ class GoogleDriveAdapter extends AbstractAdapter
         
         // What drive needs to be searched? That more performant than setting
         // corpora in the search query to 'allDrives'.
-        if ($driveFile instanceof \Google_Service_Drive_Drive)
+        if ($driveFile instanceof Drive)
             $driveId = $driveFile->getId();
-            elseif ($driveFile instanceof \Google_Service_Drive_DriveFile)
+            elseif ($driveFile instanceof DriveFile)
             $driveId = $driveFile->getDriveId();
             
             $result = $this->gdListFiles([
@@ -1515,7 +1516,7 @@ class GoogleDriveAdapter extends AbstractAdapter
             ]);
             
             // Get every DriveFile from the result
-            if ($result instanceof \Google_Service_Drive_FileList) {
+            if ($result instanceof FileList) {
                 $children = [];
                 
                 foreach ($result->getFiles() as $child) {
@@ -1535,7 +1536,7 @@ class GoogleDriveAdapter extends AbstractAdapter
      *
      * @param object $parent
      * @param array $children
-     * @return \Google_Service_Drive_Drive|\Google_Service_Drive_DriveFile
+     * @return Drive|DriveFile
      */
     protected function addChildrenToParentCache(object $parent, array $children)
     {
@@ -1654,7 +1655,7 @@ class GoogleDriveAdapter extends AbstractAdapter
     /**
      * Check if the given DriveFile object is a directory.
      *
-     * @param \Google_Service_Drive_DriveFile|\Google_Service_Drive_Drive $fileObj
+     * @param DriveFile|Drive $fileObj
      * @return bool
      */
     protected function fileObjIsDirectory(object $fileObj): bool

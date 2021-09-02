@@ -1,10 +1,11 @@
 <?php
 namespace mium\GoogleDrive\Providers;
 
+use Google\Service\Drive;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Storage;
-use mium\GoogleDrive\Adapters\GoogleDriveAdapter;
 use League\Flysystem\Config;
+use mium\GoogleDrive\Adapters\GoogleDriveAdapter;
 
 /**
  * A default Service Provider to add a google storage.
@@ -29,7 +30,7 @@ class GoogleDriveServiceProvider extends ServiceProvider
     /**
      * The Google Drive Service instance.
      *
-     * @var \Google_Service_Drive|null
+     * @var Drive|null
      */
     public $googleServiceDrive = null;
     
@@ -137,19 +138,19 @@ class GoogleDriveServiceProvider extends ServiceProvider
      * Get the Google Drive Service instance.
      *
      * @param \Google_Client $client
-     * @return \Google_Service_Drive|NULL
+     * @return Drive|NULL
      */
     public function getGoogleServiceDrive($client)
     {
         if ($this->googleServiceDrive == null)
-            $this->googleServiceDrive = new \Google_Service_Drive($client);
+            $this->googleServiceDrive = new Drive($client);
             return $this->googleServiceDrive;
     }
     
     /**
      * Set the set the Google Drivce Service instance.
      *
-     * @param \Google_Service_Drive $service
+     * @param Drive $service
      * @return \mium\GoogleDrive\Providers\GoogleDriveServiceProvider
      */
     public function setGoogleServiceDrive($service)
