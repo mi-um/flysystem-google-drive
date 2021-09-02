@@ -1,5 +1,7 @@
 <?php
 
+namespace tests;
+
 use PHPUnit\Framework\TestCase;
 use mium\GoogleDrive\Adapters\GoogleDriveAdapter;
 
@@ -8,7 +10,7 @@ use mium\GoogleDrive\Adapters\GoogleDriveAdapter;
  * 
  * @author umschlag
  */
-class GoogleDriveTests extends TestCase
+class GoogleDriveAdapterTests extends TestCase
 {
     // @todo write more tests
     
