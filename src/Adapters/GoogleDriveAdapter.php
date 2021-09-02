@@ -159,20 +159,26 @@ class GoogleDriveAdapter extends AbstractAdapter
     {
         // Get file object from GDrive, needed for the size
         $fileObj = $this->getFileObjByName($path);
-        
+
         // Get the stream interface
+        /* @var resource */
         $response = $this->readStream($path)['stream'];
-        
-        // And return the content from that stream
+
+        // and read all content from the stream
         if (is_resource($response)) {
-            if ($fileObj->getSize() > 0)
+            if ($fileObj->getSize() > 0) {
+                $content = '';
+                while(false == feof($response))
+                    $content .= fread($response, 1024);
+
                 return [
-                    'contents' => fread($response, $fileObj->getSize())
+                    'contents' => $content
                 ];
-                else
-                    return [
-                        'contents' => ''
-                    ];
+            } else {
+                return [
+                    'contents' => ''
+                ];
+            }
         }
         
         return false;
@@ -191,7 +197,7 @@ class GoogleDriveAdapter extends AbstractAdapter
         
         // Get the GuzzleStream
         $response = $this->gdGetStream($fileObj);
-        
+
         // And return it as a resource
         return [
             'stream' => StreamWrapper::getResource($response)
@@ -1130,7 +1136,7 @@ class GoogleDriveAdapter extends AbstractAdapter
     /**
      *
      * @param DriveFile $fileObj
-     * @return boolean|\GuzzleHttp\Psr7\Stream
+     * @return boolean|\GuzzleHttp\Psr7\Response
      */
     protected function gdGetStream(DriveFile $fileObj)
     {
@@ -1144,12 +1150,13 @@ class GoogleDriveAdapter extends AbstractAdapter
         $fileParams['uploadType'] = 'multipart';
         
         // Get a service instance
+        /* @var \GuzzleHttp\Psr7\Response */
         $response = $this->getService()->files->get($fileObj->id, $fileParams);
         
         if ($response->getStatusCode() != 200)
             return false;
             
-            return $response->getBody();
+        return $response->getBody();
     }
     
     /**
