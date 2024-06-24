@@ -13,7 +13,7 @@
 		"GDrive"
 	],
 	"require" : {
-		"php": "^7.2.5",
+		"php": "^8.3.0",
 		"google/apiclient": "^2.0",
 		"illuminate/log": "^8.0",
 		"illuminate/support": "^8.0",
